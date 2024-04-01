@@ -9,14 +9,29 @@ import {
   TextInput,
   View,
 } from "react-native";
+
+import firebase from "../config";
  
 export default function Authentification(props) {
   var email, password;
+
+  const auth = firebase.auth();
   const { navigation } = props;
+
   function Login() {
-   navigation.navigate("Home");
+    auth
+      .signInWithEmailAndPassword(email, password)
+      .then((userCredential) => {
+        // Signed in
+        var user = userCredential.user;
+        navigation.replace("Home");
+      })
+      .catch((error) => {
+        var errorCode = error.code;
+        var errorMessage = error.message;
+        alert(errorMessage);
+      });
   }
- 
   return (
     <ImageBackground
       source={require("../assets/bg.jpg")}
