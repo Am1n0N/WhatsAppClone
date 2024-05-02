@@ -5,12 +5,13 @@ import myProfile from './homeScreens/myProfile';
 import groups from './homeScreens/groups';
 import listProfile from './homeScreens/listProfile';
 const Tab = createMaterialBottomTabNavigator();
-export default function Home() {
+export default function Home(props) {
+  const currentid = props.route.params.currentid;
   return (
     <Tab.Navigator>
-      <Tab.Screen name="Home" component={myProfile} />
-      <Tab.Screen name="Groups" component={groups} />
-      <Tab.Screen name="Profile" component={listProfile} />
+      <Tab.Screen name="My profile" component={myProfile} initialParams={{currentid: currentid}} />
+      <Tab.Screen name="Groups" component={groups} initialParams={{currentid: currentid}}/>
+      <Tab.Screen name="List Profiles" component={listProfile} initialParams={{currentid: currentid}} />
     </Tab.Navigator>
   )
 }

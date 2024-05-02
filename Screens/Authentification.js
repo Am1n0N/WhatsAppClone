@@ -23,8 +23,10 @@ export default function Authentification(props) {
       .signInWithEmailAndPassword(email, password)
       .then((userCredential) => {
         // Signed in
-        var user = userCredential.user;
-        navigation.replace("Home");
+        const currentid = auth.currentUser.uid;
+        navigation.replace("Home", {
+          currentid: currentid,
+        });
       })
       .catch((error) => {
         var errorCode = error.code;
