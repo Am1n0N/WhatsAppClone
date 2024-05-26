@@ -1,139 +1,125 @@
 import {
-  StyleSheet,
   View,
   Text,
-  ImageBackground,
   FlatList,
   Image,
   TouchableOpacity,
   Platform,
   Linking,
+  ScrollView,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { Dialog, Button } from "react-native-paper";
-
+import tw from "twrnc";
 import firebase from "../../config";
-import { DataSnapshot } from "firebase/database";
 const database = firebase.database();
 
 export default function ListProfils(props) {
   const currentid = props.route.params.currentid;
-  const [isDialogVisible, setDialogvisible] = useState(false);
-  const [itemSelected, setItemSelected] = useState([]);
-  const [data, setdata] = useState([]);
+  const [isDialogVisible, setDialogVisible] = useState(false);
+  const [itemSelected, setItemSelected] = useState({});
+  const [data, setData] = useState([]);
   const reflistProfiles = database.ref("listProfile");
 
   useEffect(() => {
-    reflistProfiles.on("value", (DataSnapshot) => {
-      let d = [];
-      DataSnapshot.forEach((un_profil) => {
-        if (un_profil.val().idProfile != currentid) {
-          d.push(un_profil.val());
+    const unsubscribe = reflistProfiles.on("value", (snapshot) => {
+      const profiles = [];
+      snapshot.forEach((un_profil) => {
+        if (un_profil.val().idProfile !== currentid) {
+          profiles.push(un_profil.val());
         }
       });
-      setdata(d);
+      setData(profiles);
     });
-    return () => { };
-  }, []);
+
+
+    return () => reflistProfiles.off("value", unsubscribe);
+  }, [currentid]);
 
   return (
-    <ImageBackground
-      source={require("../../assets/pngtre.png")}
-      style={styles.container}
-    >
-      <Text
-        style={{
-          fontSize: 24,
-          textAlign: "center",
-          color: "#555",
-          fontWeight: "bold",
-        }}
-      >
+    <View style={tw`bg-gray-200 h-full px-4 py-4`}>
+      <Text style={tw`text-4xl text-center text-stone-800 font-black my-6`}>
         List Profils
       </Text>
 
       <FlatList
         data={data}
-        renderItem={({ item }) => {
-          return (
-            <View
-              style={{
-                backgroundColor: "#0004",
-                margin: 2,
-                padding: 5,
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
-              <TouchableOpacity
-                onPress={() => {
-                  setDialogvisible(true);
-                  setItemSelected(item);
-                }}
-              >
-                <Image
-                  source={item.url ? { uri: item.url } : require("../../assets/profil.png")}
-                  style={{
-                    height: 50,
-                    width: 50,
-                  }}
-                ></Image>
-              </TouchableOpacity>
-              <Text>{item.Pseudo}</Text>
-            </View>
-          );
-        }}
-        style={{ backgroundColor: "#AED6F1", margin: 5 }}
-      ></FlatList>
-
-      <Dialog visible={isDialogVisible}>
-        <Dialog.Title> Details</Dialog.Title>
-        <Dialog.Content>
-          <Image
-            source={itemSelected.url ? { uri: itemSelected.url } : require("../../assets/profil.png")}
-            style={{
-              height: 50,
-              width: 50,
-            }}
-          ></Image>
-          <Text>{itemSelected.Nom}</Text>
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button
+        keyExtractor={(item) => item.idProfile}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={tw`bg-white p-4 m-2 rounded-lg flex-row items-center shadow-md`}
             onPress={() => {
-              if (Platform.OS == "android") {
-                Linking.openURL("tel:123456");
+              setDialogVisible(true);
+              setItemSelected(item);
+            }}
+          >
+            <Image
+              source={item.url ? { uri: item.url } : require("../../assets/profil.png")}
+              style={tw`h-12 w-12 rounded-full`}
+            />
+            <Text style={tw`ml-4 text-lg font-semibold`}>{item.Pseudo}</Text>
+            {/* chat button */}
+            <Button
+              mode="contained"
+              onPress={() => {
+                props.navigation.navigate("Chat", {
+                  currentid: currentid,
+                  destinataire: item.idProfile,
+                });
+              }}
+              style={tw`bg-green-500 ml-auto`}
+              labelStyle={tw`text-white`}
+            >
+              Chat
+            </Button>
+          </TouchableOpacity>
+        )}
+      />
+
+      <Dialog
+        visible={isDialogVisible}
+        onDismiss={() => setDialogVisible(false)}
+        style={tw`p-4 rounded-lg`}
+      >
+        <Dialog.Title style={tw`text-center text-xl font-bold`}>Profile Details</Dialog.Title>
+        <Dialog.Content>
+          <ScrollView contentContainerStyle={tw`items-center`}>
+            <Image
+              source={itemSelected.url ? { uri: itemSelected.url } : require("../../assets/profil.png")}
+              style={tw`h-24 w-24 rounded-full mb-4`}
+            />
+            <Text style={tw`text-lg font-bold mb-2`}>{itemSelected.Nom}</Text>
+            <Text style={tw`text-lg mb-1`}>Prenom: {itemSelected.Prenom}</Text>
+            <Text style={tw`text-lg mb-1`}>Telephone: {itemSelected.Telephone}</Text>
+            <Text style={tw`text-lg mb-1`}>Pseudo: {itemSelected.Pseudo}</Text>
+          </ScrollView>
+        </Dialog.Content>
+        <Dialog.Actions style={tw`justify-around`}>
+          <Button
+            mode="contained"
+            onPress={() => {
+              if (Platform.OS === "android") {
+                Linking.openURL(`tel:${itemSelected.Telephone}`);
               } else {
-                Linking.openURL("telprompt:5599599");
+                Linking.openURL(`telprompt:${itemSelected.Telephone}`);
               }
             }}
+            style={tw`bg-blue-500 w-28`}
+            labelStyle={tw`text-white`}
           >
-            call
+            Call
           </Button>
-          <Button onPress={() => {
-            props.navigation.navigate("Chat",
-              {
-                currentid: currentid,
-                destinataire: itemSelected.idProfile,
 
-              });
-          }
-          }>chat</Button>
           <Button
-            onPress={() => {
-              setDialogvisible(false);
-            }}
+            mode="text"
+            onPress={() => setDialogVisible(false)}
+            style={tw`bg-red-500 w-28`}
+            labelStyle={tw`text-white`}
           >
-            cancel
+            Cancel
           </Button>
         </Dialog.Actions>
       </Dialog>
-    </ImageBackground>
+    </View>
   );
 }
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "red",
-  },
-});

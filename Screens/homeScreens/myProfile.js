@@ -3,25 +3,24 @@ import React, { useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
   Image,
-  ImageBackground,
-  StyleSheet,
+  View,
   Text,
   TextInput,
   TouchableOpacity,
+  Alert
 } from "react-native";
-
+import tw from "twrnc";
 import firebase from "../../config";
 const database = firebase.database();
 
-export default function myProfile(props) {
+export default function MyProfile(props) {
   const currentid = props.route.params.currentid;
 
-  const [Nom, setNom] = useState("");
-  const [Prenom, setPrenom] = useState("");
-  const [Telephone, setTelephone] = useState("");
-  const [Pseudo, setPseudo] = useState("");
+  const [nom, setNom] = useState("");
+  const [prenom, setPrenom] = useState("");
+  const [telephone, setTelephone] = useState("");
+  const [pseudo, setPseudo] = useState("");
   const [urlImage, setUrlImage] = useState(null);
-
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -31,11 +30,11 @@ export default function myProfile(props) {
       quality: 1,
     });
 
-
     if (!result.canceled) {
       setUrlImage(result.assets[0].uri);
     }
   };
+
   const imageToBlob = async (uri) => {
     const blob = await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -46,14 +45,15 @@ export default function myProfile(props) {
         console.log(e);
         reject(new TypeError("Network request failed"));
       };
-      xhr.responseType = "blob"; //bufferArray
+      xhr.responseType = "blob";
       xhr.open("GET", uri, true);
       xhr.send(null);
     });
-  
+
     return blob;
   };
-  const uploadLocalToStorage = async (url) =>{
+
+  const uploadLocalToStorage = async (url) => {
     const storage = firebase.storage();
     const ref_photos_des_profils = storage.ref("photos_des_profils");
     const ref_unphoto = ref_photos_des_profils.child(currentid);
@@ -61,139 +61,113 @@ export default function myProfile(props) {
     await ref_unphoto.put(blob);
     const lien = await ref_unphoto.getDownloadURL();
     return lien;
-  }
+  };
+
+  const saveData = async () => {
+    if (urlImage && nom.length > 0 && prenom.length > 0 && telephone.length > 0 && pseudo.length > 0) {
+      try {
+        const link = await uploadLocalToStorage(urlImage);
+        const refProfiles = database.ref("listProfile");
+        const unProfile = refProfiles.child("unProfile" + currentid);
+        await unProfile.set({
+          idProfile: currentid,
+          Nom: nom,
+          Prenom: prenom,
+          Telephone: telephone,
+          Pseudo: pseudo,
+          url: link
+        });
+        Alert.alert("Profile saved successfully");
+      } catch (error) {
+        Alert.alert("Error saving profile", error.message);
+      }
+    } else {
+      Alert.alert("Please fill in all fields and upload an image");
+    }
+  };
+
+
+  const refProfiles = database.ref("listProfile");
+  const unProfile = refProfiles.child("unProfile" + currentid);
+  unProfile.once("value", (datasnapshot) => {
+    if (datasnapshot.exists()) {
+      setNom(datasnapshot.val().Nom);
+      setPrenom(datasnapshot.val().Prenom);
+      setTelephone(datasnapshot.val().Telephone);
+      setPseudo(datasnapshot.val().Pseudo);
+      setUrlImage(datasnapshot.val().url);
+    }
+  });
+
   return (
-    <ImageBackground
-      source={require("../../assets/pngtre.png")}
-      style={styles.container}
-    >
-      <StatusBar style="dark" />
-      <Text style={styles.textstyle}>Mon compte</Text>
-      <TouchableOpacity onPress={pickImage}>
-        <Image
-          source={
-            urlImage ? { uri: urlImage } : require("../../assets/profil.png")
-          }
-          style={{
-            height: 150,
-            width: 150,
-          }}
-        ></Image>
-      </TouchableOpacity>
-
-      <TextInput
-        onChangeText={(text) => {
-          setNom(text);
-        }}
-        textAlign="center"
-        placeholderTextColor="#0005"
-        placeholder="Nom"
-        keyboardType="name-phone-pad"
-        style={styles.textinputstyle}
-      ></TextInput>
-      <TextInput
-        onChangeText={(text) => {
-          setPrenom(text);
-        }}
-        textAlign="center"
-        placeholderTextColor="#0005"
-        placeholder="Prenom"
-        keyboardType="name-phone-pad"
-        style={styles.textinputstyle}
-      ></TextInput>
-      <TextInput
-        onChangeText={(text) => {
-          setTelephone(text);
-        }}
-        placeholderTextColor="#0005"
-        textAlign="center"
-        placeholder="Telephone"
-        keyboardType="phone-pad"
-        style={styles.textinputstyle}
-      ></TextInput>
-      <TextInput
-        onChangeText={(text) => {
-          setPseudo(text);
-        }}
-        placeholderTextColor="#0005"
-        textAlign="center"
-        placeholder="Pseudo"
-        style={styles.textinputstyle}
-      ></TextInput>
-
+    <View style={tw`bg-gray-200 h-full px-4 py-4`}>
+      <StatusBar style="white" />
+      <Text style={tw`text-4xl text-center text-stone-800 font-black my-6`}>Compte</Text>
+      <View style={tw`bg-white rounded-lg items-center`}>
+        <TouchableOpacity onPress={pickImage} style={tw`m-6`}>
+          <Image
+            source={urlImage ? { uri: urlImage } : require("../../assets/profil.png")}
+            style={{ height: 150, width: 150, borderRadius: 75 }} />
+        </TouchableOpacity>
+        <View style={tw`bg-gray-200 h-[1px] w-11/12 self-center`} />
+        <TextInput
+          onChangeText={setNom} 
+          value={nom}
+          textAlign="center"
+          placeholderTextColor="#0005"
+          placeholder="Nom"
+          style={tw`px-4 py-4 font-bold w-full`}
+          keyboardType="default" />
+        <View style={tw`bg-gray-200 h-[1px] w-11/12 self-center`} />
+        <TextInput
+          onChangeText={setPrenom}
+          value={prenom}
+          textAlign="center"
+          placeholderTextColor="#0005"
+          placeholder="Prenom"
+          style={tw`px-4 py-4 font-bold w-full`}
+          keyboardType="default" />
+        <View style={tw`bg-gray-200 h-[1px] w-11/12 self-center`} />
+        <TextInput
+          onChangeText={setTelephone}
+          value={telephone}
+          placeholderTextColor="#0005"
+          textAlign="center"
+          placeholder="Telephone"
+          style={tw`px-4 py-4 font-bold w-full`}
+          keyboardType="phone-pad" />
+        <View style={tw`bg-gray-200 h-[1px] w-11/12 self-center`} />
+        <TextInput
+          onChangeText={setPseudo}
+          value={pseudo}
+          placeholderTextColor="#0005"
+          textAlign="center"
+          style={tw`px-4 py-4 font-bold w-full`}
+          placeholder="Pseudo" />
+      </View>
       <TouchableOpacity
-        onPress={async () => {
-          if (urlImage && Nom.length >0){
-            const link = await uploadLocalToStorage(urlImage)
-            const refProfiles = database.ref("listProfile")
-            const key = currentid
-            const unProfile = refProfiles.child("unProfile" + key)
-            unProfile.set({
-              idProfile: currentid,
-              Nom,
-              Prenom,
-              Telephone,
-              Pseudo,
-              url: link
-            }).then(() => {
-              alert("Profile saved")
-            }).catch((error) => {
-              alert(error)
-            })
-          }
-        }}
-        disabled={false}
+        onPress={saveData}
+        disabled={!urlImage || !nom || !prenom || !telephone || !pseudo}
         activeOpacity={0.5}
         underlayColor="#DDDDDD"
-        style={{
-          marginBottom: 10,
-          backgroundColor: "#4682a0",
-          textstyle: "italic",
-          fontSize: 24,
-          height: 40,
-          width: "50%",
-          justifyContent: "center",
-          alignItems: "center",
-          borderRadius: 5,
-          marginTop: 20,
-        }}
-      >
-        <Text
-          style={{
-            color: "white",
-            fontSize: 16,
-            fontWeight: "bold",
-          }}
-        >
+        style={[
+          tw`p-4 rounded-lg my-4 `,
+          urlImage && nom && prenom && telephone && pseudo ? tw`bg-gray-300` : tw`bg-gray-400`
+        ]}>
+        <Text style={tw`text-center font-bold text-stone-600 text-lg`}>
           Save
         </Text>
       </TouchableOpacity>
-    </ImageBackground>
+    
+      <TouchableOpacity
+        onPress={() => props.navigation.navigate("Authentification")}
+        activeOpacity={0.5}
+        underlayColor="#DDDDDD"
+        style={tw`p-4 rounded-lg mb-4 bg-red-500`}>
+        <Text style={tw`text-center font-bold text-white text-lg`}>
+          Disconnect
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }
-const styles = StyleSheet.create({
-  textinputstyle: {
-    fontStyle: "italic",
-    backgroundColor: "#0002",
-    fontSize: 13,
-    width: "70%",
-    height: 40,
-    borderRadius: 5,
-    margin: 5,
-  },
-  textstyle: {
-    fontSize: 32,
-    fontFamily: "serif",
-    color: "#4682b4",
-    fontWeight: "bold",
-  },
-  container: {
-    paddingTop: 40,
-    color: "blue",
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "flex-start",
-  },
-});
-
